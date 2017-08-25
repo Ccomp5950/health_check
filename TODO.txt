@@ -1,0 +1,10 @@
+1.) Have a more robust means of determining if DNS has changed recently.
+   * Attempt with many servers?  (Compare SOA)
+   * Attempt multiple times against 8.8.8.8 (how I usually handle this manually.
+
+2.) Output information upon failure - a verbose mode.
+
+3.) Way to speed all this up without sacrificing useability / accuracy.
+   * Make the nmap check non-blocking and work from the start (when initial ping check occurs).
+
+4.) 
