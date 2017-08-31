@@ -8,7 +8,7 @@ dns=8.8.8.8
 
 #And the program, nothing below here should need to be edited.
 
-version="1.0"
+version="1.0.1"
 
 reset="\e[0m"
 #light red
@@ -42,8 +42,8 @@ input=$1
 
 
 echo ""
-echo -e "--- ${passColor}Health Check${reset} ---"
-echo -e "--- version $version  ---"
+echo -e "--- ${passColor}Health Check${reset}  ---"
+echo -e "--- version $version ---"
 echo ""
 
 echo "Checking: $input"
@@ -83,6 +83,22 @@ function set_check {
 	check="${skipColor}$1${reset}:"
 }
 
+function pass {
+echo -e "${pass} $1 ${reset}"
+}
+
+
+function fail {
+echo -e "${fail} $1 ${reset}"
+}
+
+function info {
+echo -e "${info} $1 ${reset}"
+}
+
+function skip {
+echo -e "${skip} ${check::-1}  ${reset}"
+}
 
 check_if_ip $input 1
 
@@ -121,28 +137,34 @@ if [[ $dns_check -eq 1 ]]; then
 	nslookup $input >/dev/null
 	result=$?
 	if [[ $result -ne 0 ]]; then
-		echo -e "${fail} ${check} $input does not resolve."
+		fail "${check} ${input} does not resolve."
 		dns_check=0
 	else
 		#What does it resolve to?		
 		resolves=`dig $input +short @$dns| tee .dns_check.tmp`
 		#Resolve to multiple IP addresses or domains?
 		lines=`wc -l .dns_check.tmp | awk -F ' ' '{print $1}'`
-		if [[ $lines -ne 1 ]]; then
-			echo -e "${pass} ${check} $input resolves to multiple records... ${reset}"
-			num=1
-			for line in $(cat .dns_check.tmp)
-			do
-				echo -e "${info} [${num}] $line"
-				((num++))
-			done
-		else 
-			echo -e "${pass} ${check} $input resolves to ${skipColor} $resolves ${reset}" 
+		
+		if [[ $lines -eq 0 ]]; then
+			fail "${check} $input does not resolve."
+			dns_check=0
+		else
+			if [[ $lines -ne 1 ]]; then
+				pass "$input resolves to multiple records..."
+				num=1
+				for line in $(cat .dns_check.tmp)
+				do
+					info "[${num}] $line"
+					((num++))
+				done
+			else 
+				pass "${check} $input resolves to ${skipColor} $resolves"
+			fi
 		fi
 	fi
 	
 else
-	echo -e "${skip} ${check::-1} ${reset}"
+	skip
 fi
 echo ""
 
@@ -153,21 +175,18 @@ echo ""
 set_check "DNS Propogation"
 if [[ $dns_check -eq 1 ]]; then
 	nameserver=`dig ns $domain +short | head -n 1 | sed -r 's/\\.$//'`
-	#echo "Nameserver: $nameserver"
 	cached=`dig soa $domain +short @$dns | awk -F ' ' '{print $3}'`
 	current=`dig soa $domain +short @$nameserver | awk -F ' ' '{print $3}'`
-	#echo "Cached: $cached"
-	#echo "Nameserver: $current"
 	if [[ $cached -eq $current ]]; then
-		echo -e "${pass} $check DNS appears propogated (SOA: $cached) ${reset}"
+		pass "$check DNS appears propogated (SOA: $cached)"
 	else
-		echo -e "${fail} $check DNS SOA for $domain differs. ${reset}"
-		echo -e "${info} $dns : $cached ${reset}"
-		echo -e "${info} $nameserver : $current ${reset}"
+		fail "$check DNS SOA for $domain differs."
+		info  "$dns : $cached"
+		info  "$nameserver : $current"
 	fi
 
 else
-	echo -e "${skip} ${check::-1}  ${reset}"
+		skip
 fi
 echo ""
 
@@ -185,32 +204,32 @@ if [[ $dns_check -eq 1 ]]; then
 		lines=`wc -l .mx_check.tmp | awk -F ' ' '{print $1}'`
 
 		if [[ $lines -ne 1 ]]; then
-			echo -e "${pass} $check $domain MX record resolves to multiple records (listed in priority order)... ${reset}"
+			pass "$check $domain MX record resolves to multiple records (listed in priority order)..."
 			num=1
 			for line in $(cat .mx_check.tmp)
 			do
 				if [[ $google -eq 0 && $num -eq 1 ]]; then
 					echo "$line" | grep -i $gmail_main > /dev/null
 					if [[ $? -ne 0 ]]; then
-						echo -e "${info} Domain appears to be using G Suite (Gmail) for email but does not have $gmail_main as first priority MX record"
+						info "Domain appears to be using G Suite (Gmail) for email but does not have $gmail_main as first priority MX record"
 					fi
 				fi
 				check_if_ip $line
 				check_port $line 25
-				echo -e "${info} [${num}] $line $reverse $port_report"
+				info "[${num}] $line $reverse $port_report"
 				((num++))
 			done
 		else
 			check_if_ip $resolves
 			check_port $resolves 25
-			echo -e "${pass} $check $domain MX record resolves to ${skipColor} $resolves $reverse $port_report ${reset}"
+			pass "$check $domain MX record resolves to ${skipColor} $resolves $reverse $port_report"
 			
 		fi
 	else
-		echo -e "${fail} $check $domain MX record is not set. ${reset}"
+		fail "$check $domain MX record is not set."
 	fi
 else
-        echo -e "${skip} ${check::-1} ${reset}"
+	skip
 fi
 echo ""
 
@@ -223,13 +242,13 @@ if [[ $ipaddr -eq 1 || $dns_check -eq 1 ]]; then
 	result=$?
 	ping=0
 	if [[ $result -eq 0 ]]; then
-		echo -e "${pass} $check $input can be pinged";
+		pass "$check $input can be pinged"
 		ping=1
 	else
-		echo -e "${fail} $check $input cannot be pinged";
+		fail "$check $input cannot be pinged"
 	fi
 else
-	echo -e "${skip} ${check::-1} ${reset}"
+	skip
 fi
 echo ""
 
@@ -247,14 +266,14 @@ if [[ $ipaddr -eq 1 || $dns_check -eq 1 ]]; then
 		nmap_option=""
 	else
 		nmap_option=$nmap_noping_option
-		echo -e "${info} Port Check may take longer on unpingable servers.  ${failureColor}!!! Only checking specific ports !!! ${reset}"
+		info "Port Check may take longer on unpingable servers.  ${failureColor}!!! Only checking specific ports !!!"
 	fi
 
 	nmap $input ${nmap_option} > .port_check.tmp
 	grep "Host is up" .port_check.tmp > /dev/null
 	result=$?
 	if [[ $result -eq 0 ]]; then
-		echo -e "${pass} $check Server responds to port checks. ${reset}"
+		pass "$check Server responds to port checks."
 	else
 		#One more try
 		if [[ $ping -eq 1 ]]; then
@@ -262,16 +281,16 @@ if [[ $ipaddr -eq 1 || $dns_check -eq 1 ]]; then
 			grep "Host is up" .port_check.tmp > /dev/null
 			result=$?
 			if [[ $result -eq 0 ]]; then
-				echo -e "${pass} $check Server responds to port checks. ${reset}"
+				pass "$check Server responds to port checks."
 			else
-				echo -e "${fail} $check Server does not respond to port checks ${reset}"
+				fail "$check Server does not respond to port checks."
 			fi
 		else
-			echo -e "${fail} $check Server does not respond to port checks ${reset}"
+			fail "$check Server does not respond to port checks."
 		fi
 	fi
 else
-	echo -e "${skip} ${check::-1} ${reset}"
+	skip
 fi
 
 echo ""
