@@ -8,7 +8,7 @@ dns=8.8.8.8
 
 #And the program, nothing below here should need to be edited.
 
-version="1.0.1"
+version="1.0.2"
 
 reset="\e[0m"
 #light red
@@ -25,6 +25,9 @@ info="${reset}[  ${skipColor}Info${reset}   ]"
 
 #Addiational MX check for gmail using domains.
 gmail_main="ASPMX.L.GOOGLE.COM"
+senderbase="score.senderscore.com"
+
+
 
 ipaddr=0
 dns_check=1
@@ -48,6 +51,28 @@ echo ""
 
 echo "Checking: $input"
 
+function check_senderscore {
+                        senderscorehost=`echo $1 | awk -F '.' '{print $4"."$3"."$2"."$1"."}'`
+                        senderscorehost=${senderscorehost}${senderbase}
+                        senderscore=`dig ${senderscorehost} +short | awk -F '.' '{print $4}'`
+			if [[ "$senderscore" == "" ]]; then
+                                senderscore="SenderScore: N/A"
+                        else
+				case $senderscore in
+					100|9[0-9]|8[0-9])
+						ss_color=$passColor
+					;;
+					7[0-9])
+						ss_color=$skipColor
+					;;
+					*)
+						ss_color=$failureColor
+					;;
+				esac
+				senderscore="SenderScore: ${ss_color}${senderscore}${reset}"
+                        fi
+}
+
 function check_if_ip {
 	reverse=""
 	is_ip=0
@@ -55,10 +80,13 @@ function check_if_ip {
 		is_ip=1
 		reverse=`dig -x $1 +short | head -n 1`
 		reverse="(Reverse DNS: $reverse)"
+		check_senderscore $1
+		
 	else
 		if [[ $2 -ne 1 ]]; then
 			resolve_ip=`dig a $1 @$dns +short | head -n1`
 			reverse_tmp=`dig -x $resolve_ip +short | head -n1`
+			check_senderscore $resolve_ip
 			if [[ -z $reverse_tmp  ]]; then
 				reverse_tmp="${failureColor}No Reverse DNS${reset}"
 			fi
@@ -216,13 +244,13 @@ if [[ $dns_check -eq 1 ]]; then
 				fi
 				check_if_ip $line
 				check_port $line 25
-				info "[${num}] $line $reverse $port_report"
+				info "[${num}] $line $reverse $port_report $senderscore"
 				((num++))
 			done
 		else
 			check_if_ip $resolves
 			check_port $resolves 25
-			pass "$check $domain MX record resolves to ${skipColor} $resolves $reverse $port_report"
+			pass "$check $domain MX record resolves to ${skipColor} $resolves $reverse $port_report $senderscore"
 			
 		fi
 	else

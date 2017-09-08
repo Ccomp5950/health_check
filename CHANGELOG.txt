@@ -1,2 +1,3 @@
 * 1.0 Initial Changelog Entry.
 * 1.0.1 Better DNS checks (as in actually error if there is no record for the initial DNS check, herp derp)
+* 1.0.2 Senderscore check added to MX tests.
