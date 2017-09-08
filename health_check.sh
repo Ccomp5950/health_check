@@ -49,8 +49,6 @@ echo -e "--- ${passColor}Health Check${reset}  ---"
 echo -e "--- version $version ---"
 echo ""
 
-echo "Checking: $input"
-
 function check_senderscore {
                         senderscorehost=`echo $1 | awk -F '.' '{print $4"."$3"."$2"."$1"."}'`
                         senderscorehost=${senderscorehost}${senderbase}
@@ -154,7 +152,6 @@ domain=`echo $input | awk '
                         printf( "%s.%s\n",  a[n-1], a[n] );
         }
 '`
-	echo "Domain Name: $domain"
 fi
 echo ""
 ############################  
