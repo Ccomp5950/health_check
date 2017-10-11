@@ -5,10 +5,12 @@
 
 # DNS Server we use dig's overide to force this server instead of the server listed in /etc/resolve.conf
 dns=8.8.8.8
+propcheck=(     '8.8.8.8', '165.87.13.129', '168.95.1.1', '64.6.64.6', '208.67.222.222')
+propcheck_name=('Google',  'AT&T',          'HiNet (TW)', 'Verisign',  'OpenDNS')
 
 #And the program, nothing below here should need to be edited.
 
-version="1.1.0"
+version="1.1.1"
 
 reset="\e[0m"
 #light red
@@ -97,7 +99,7 @@ function check_port {
 	port_open=0
 	nmap $1 -p $2 -Pn > .port_check.tmp
 	port_report="${failureColor}Port $2 is closed or unable to be reached${reset}"
-	grep "open" .port_check.tmp > /dev/null
+	sed -n '/PORT.*STATE.*SERVICE/,/^$/p' .port_check.tmp | egrep "\bopen\b" &> /dev/null
 	result=$?
 	if [[ $result -eq 0 ]]; then
 		port_open=1
@@ -245,9 +247,10 @@ if [[ $dns_check -eq 1 ]]; then
 				((num++))
 			done
 		else
-			check_if_ip $resolves
-			check_port $resolves 25
-			pass "$check $domain MX record resolves to ${skipColor} $resolves $reverse $port_report $senderscore"
+			check_if_ip $mx
+			check_port $mx 25
+
+			pass "$check $domain MX record resolves to ${skipColor} $mx $reverse $port_report $senderscore"
 			
 		fi
 	else
