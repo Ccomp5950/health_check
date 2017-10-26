@@ -4,3 +4,4 @@
 
 * 1.1.0 Port Check now handled better then just exit status of nmap (actually checks if ports are open at all)
 * 1.1.1 Bugfix: MX Check was using the $resolves variable (A record) instead of $mx (MX record) when checking a single MX record.
+* 1.1.2 Dig improvement with use of "NoCookie" since this messes up some DNS requests.  Also detection if "Nocookie" is even supported.

@@ -29,7 +29,13 @@ info="${reset}[  ${skipColor}Info${reset}   ]"
 gmail_main="ASPMX.L.GOOGLE.COM"
 senderbase="score.senderscore.com"
 
-
+### Check to see if this version of dig supports nocookie or not.
+nocookie="+nocookie"
+dig google.com @8.8.8.8 +nocookie &> /dev/null
+result=$?
+if [[ result -eq 1 ]]; then
+	nocookie=""
+fi
 
 ipaddr=0
 dns_check=1
@@ -78,14 +84,14 @@ function check_if_ip {
 	is_ip=0
 	if expr "$1" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
 		is_ip=1
-		reverse=`dig -x $1 +short +nocookie | head -n 1`
+		reverse=`dig -x $1 +short $nocookie | head -n 1`
 		reverse="(Reverse DNS: $reverse)"
 		check_senderscore $1
 		
 	else
 		if [[ $2 -ne 1 ]]; then
-			resolve_ip=`dig a $1 @$dns +short +nocookie | head -n1`
-			reverse_tmp=`dig -x $resolve_ip +short +nocookie | head -n1`
+			resolve_ip=`dig a $1 @$dns +short $nocookie | head -n1`
+			reverse_tmp=`dig -x $resolve_ip +short $nocookie | head -n1`
 			check_senderscore $resolve_ip
 			if [[ -z $reverse_tmp  ]]; then
 				reverse_tmp="${failureColor}No Reverse DNS${reset}"
@@ -168,7 +174,7 @@ if [[ $dns_check -eq 1 ]]; then
 		dns_check=0
 	else
 		#What does it resolve to?		
-		resolves=`dig $input +short +nocookie @$dns | tee .dns_check.tmp`
+		resolves=`dig $input +short $nocookie @$dns | tee .dns_check.tmp`
 		#Resolve to multiple IP addresses or domains?
 		lines=`wc -l .dns_check.tmp | awk -F ' ' '{print $1}'`
 		
@@ -201,9 +207,9 @@ echo ""
 ############################  Propogated.
 set_check "DNS Propogation"
 if [[ $dns_check -eq 1 ]]; then
-	nameserver=`dig ns $domain +short +nocookie | head -n 1 | sed -r 's/\\.$//'`
-	cached=`dig soa $domain +short +nocookie @$dns | awk -F ' ' '{print $3}'`
-	current=`dig soa $domain +short +nocookie @$nameserver | awk -F ' ' '{print $3}'`
+	nameserver=`dig ns $domain +short $nocookie | head -n 1 | sed -r 's/\\.$//'`
+	cached=`dig soa $domain +short $nocookie @$dns | awk -F ' ' '{print $3}'`
+	current=`dig soa $domain +short $nocookie @$nameserver | awk -F ' ' '{print $3}'`
 	if [[ $cached -eq $current ]]; then
 		pass "$check DNS appears propogated (SOA: $cached)"
 	else
@@ -222,7 +228,7 @@ echo ""
 ############################  
 set_check "DNS MX Record" 
 if [[ $dns_check -eq 1 ]]; then
-	mx=`dig mx $domain @$dns +nocookie +short | sort -n | awk -F ' ' '{print $NF}' | tee .mx_check.tmp`
+	mx=`dig mx $domain @$dns $nocookie +short | sort -n | awk -F ' ' '{print $NF}' | tee .mx_check.tmp`
 	grep "." .mx_check.tmp > /dev/null
 	result=$?
 	grep -i "google.com" .mx_check.tmp > /dev/null
