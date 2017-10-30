@@ -10,7 +10,7 @@ propcheck_name=('Google',  'AT&T',          'HiNet (TW)', 'Verisign',  'OpenDNS'
 
 #And the program, nothing below here should need to be edited.
 
-version="1.1.1"
+version="1.1.3"
 
 reset="\e[0m"
 #light red
@@ -19,6 +19,7 @@ failureColor="\e[91m"
 passColor="\e[32m"
 #light yellow
 skipColor="\e[93m"
+line="---------------------------"
 
 pass="${reset}[ ${passColor}Success${reset} ]"
 fail="${reset}[ ${failureColor}Failure${reset} ]"
@@ -214,8 +215,13 @@ if [[ $dns_check -eq 1 ]]; then
 		pass "$check DNS appears propogated (SOA: $cached)"
 	else
 		fail "$check DNS SOA for $domain differs."
-		info  "$dns : $cached"
-		info  "$nameserver : $current"
+		
+		temp=`printf "%s %s %s\n" $dns ${line:${#dns}} $cached`
+		info "$temp"
+#		info  "$dns : $cached"
+		temp=`printf "%s %s %s\n" $nameserver ${line:${#nameserver}} $current`
+		info "$temp"
+#		info  "$nameserver : $current"
 	fi
 
 else
