@@ -19,7 +19,7 @@ failureColor="\e[91m"
 passColor="\e[32m"
 #light yellow
 skipColor="\e[93m"
-line="---------------------------"
+linebuffer="---------------------------"
 
 pass="${reset}[ ${passColor}Success${reset} ]"
 fail="${reset}[ ${failureColor}Failure${reset} ]"
@@ -216,10 +216,10 @@ if [[ $dns_check -eq 1 ]]; then
 	else
 		fail "$check DNS SOA for $domain differs."
 		
-		temp=`printf "%s %s %s\n" $dns ${line:${#dns}} $cached`
+		temp=`printf "%s %s %s\n" $dns ${linebuffer:${#dns}} $cached`
 		info "$temp"
 #		info  "$dns : $cached"
-		temp=`printf "%s %s %s\n" $nameserver ${line:${#nameserver}} $current`
+		temp=`printf "%s %s %s\n" $nameserver ${linebuffer:${#nameserver}} $current`
 		info "$temp"
 #		info  "$nameserver : $current"
 	fi
